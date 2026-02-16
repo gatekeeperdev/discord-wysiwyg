@@ -2,7 +2,7 @@
 
 A browser-based WYSIWYG editor for composing Discord messages with live preview, formatting tools, timestamp generation, and spell checking.
 
-**Live site:** [bdedeurwaerder.github.io/discord-wysiwyg](https://bdedeurwaerder.github.io/discord-wysiwyg)
+**Live site:** [gatekeeperdev.github.io/discord-wysiwyg](https://gatekeeperdev.github.io/discord-wysiwyg)
 
 ## Features
 
