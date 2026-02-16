@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discord Message Editor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      padding: 2rem 1rem 1rem;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    header p {
+      color: #888;
+      margin-top: .4rem;
+      font-size: .95rem;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    /* Section panels */
+    .panel {
+      background: #181818;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: .75rem;
+    }
+
+    .panel-title {
+      font-size: .8rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      font-weight: 600;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: .45rem .9rem;
+      border: none;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s, opacity .15s;
+      color: #e0e0e0;
+      background: #333;
+    }
+
+    .btn:hover { background: #3a3a3a; }
+
+    .btn:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #5865F2;
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: #4752c4; }
+
+    .btn-danger {
+      background: #333;
+      color: #e55;
+    }
+
+    .btn-danger:hover:not(:disabled) { background: #3a3a3a; }
+
+    .btn-small {
+      padding: .3rem .6rem;
+      font-size: .78rem;
+    }
+
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .9rem;
+      font-weight: 700;
+      border-radius: 6px;
+      background: #222;
+      border: 1px solid #333;
+      color: #ccc;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+      flex-shrink: 0;
+    }
+
+    .btn-icon:hover {
+      background: #2a2a2a;
+      border-color: #5865F2;
+      color: #fff;
+    }
+
+    .btn-icon.active {
+      background: #5865F2;
+      border-color: #5865F2;
+      color: #fff;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+      padding: .6rem;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 10px 10px 0 0;
+      border-bottom: none;
+    }
+
+    .toolbar-divider {
+      width: 1px;
+      background: #333;
+      margin: 0 .2rem;
+      align-self: stretch;
+    }
+
+    /* Editor area */
+    .editor-wrap {
+      position: relative;
+    }
+
+    .editor {
+      width: 100%;
+      min-height: 180px;
+      max-height: 400px;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 0 0 10px 10px;
+      color: #e0e0e0;
+      padding: .75rem;
+      font-size: .95rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      resize: vertical;
+      overflow-y: auto;
+    }
+
+    .editor:focus {
+      outline: none;
+      border-color: #5865F2;
+    }
+
+    .editor::placeholder {
+      color: #555;
+    }
+
+    /* Character counter */
+    .char-counter {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      justify-content: flex-end;
+      margin-top: .5rem;
+    }
+
+    .char-counter-text {
+      font-size: .8rem;
+      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+      color: #888;
+    }
+
+    .char-counter-text.warning {
+      color: #f0a030;
+    }
+
+    .char-counter-text.danger {
+      color: #e55;
+    }
+
+    .char-bar {
+      flex: 1;
+      height: 4px;
+      background: #333;
+      border-radius: 2px;
+      overflow: hidden;
+      max-width: 200px;
+    }
+
+    .char-bar-fill {
+      height: 100%;
+      background: #5865F2;
+      border-radius: 2px;
+      transition: width .15s, background .15s;
+    }
+
+    .char-bar-fill.warning {
+      background: #f0a030;
+    }
+
+    .char-bar-fill.danger {
+      background: #e55;
+    }
+
+    /* Timestamp section */
+    .timestamp-section {
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+    }
+
+    .timestamp-input-row {
+      display: flex;
+      gap: .75rem;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: .3rem;
+    }
+
+    .input-group label {
+      font-size: .7rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .input-group input,
+    .input-group select {
+      background: #222;
+      border: 1px solid #333;
+      color: #e0e0e0;
+      padding: .45rem .6rem;
+      border-radius: 6px;
+      font-size: .9rem;
+      font-family: inherit;
+    }
+
+    .input-group input:focus,
+    .input-group select:focus {
+      outline: none;
+      border-color: #5865F2;
+    }
+
+    .input-group select {
+      cursor: pointer;
+    }
+
+    .input-group select option {
+      background: #222;
+      color: #e0e0e0;
+    }
+
+    /* Timestamp format buttons */
+    .timestamp-formats {
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+    }
+
+    .ts-format-row {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: .6rem .75rem;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 8px;
+      transition: border-color .15s;
+    }
+
+    .ts-format-row:hover {
+      border-color: #444;
+    }
+
+    .ts-format-label {
+      font-size: .75rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      min-width: 100px;
+      flex-shrink: 0;
+    }
+
+    .ts-format-preview {
+      flex: 1;
+      font-size: .9rem;
+      color: #e0e0e0;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ts-format-code {
+      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+      font-size: .78rem;
+      color: #5865F2;
+      background: #1a1a2e;
+      padding: .2rem .5rem;
+      border-radius: 4px;
+      flex-shrink: 0;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: border-color .15s;
+      user-select: all;
+    }
+
+    .ts-format-code:hover {
+      border-color: #5865F2;
+    }
+
+    .ts-insert-btn {
+      flex-shrink: 0;
+    }
+
+    .copied-toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #5865F2;
+      color: #fff;
+      padding: .5rem 1.2rem;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s, transform .2s;
+      z-index: 100;
+    }
+
+    .copied-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Preview section */
+    .preview-message {
+      padding: .75rem;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 8px;
+      font-size: .95rem;
+      line-height: 1.5;
+      min-height: 60px;
+      word-wrap: break-word;
+    }
+
+    .preview-message .d-bold { font-weight: 700; }
+    .preview-message .d-italic { font-style: italic; }
+    .preview-message .d-underline { text-decoration: underline; }
+    .preview-message .d-strike { text-decoration: line-through; }
+    .preview-message .d-spoiler {
+      background: #444;
+      color: #444;
+      padding: 0 .3rem;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: color .15s;
+    }
+    .preview-message .d-spoiler.revealed { color: #e0e0e0; }
+    .preview-message .d-code {
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: .15rem .4rem;
+      border-radius: 4px;
+      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+      font-size: .85em;
+    }
+    .preview-message .d-codeblock {
+      display: block;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: .6rem .75rem;
+      border-radius: 6px;
+      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+      font-size: .85em;
+      margin: .4rem 0;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+    .preview-message .d-quote {
+      border-left: 3px solid #444;
+      padding-left: .75rem;
+      margin: .3rem 0;
+      color: #aaa;
+    }
+    .preview-message .d-timestamp {
+      background: rgba(88, 101, 242, .15);
+      color: #8a9cff;
+      padding: .1rem .4rem;
+      border-radius: 3px;
+      font-size: .85em;
+    }
+    .preview-message .d-h1 { font-size: 1.5em; font-weight: 700; margin: .5rem 0 .25rem; }
+    .preview-message .d-h2 { font-size: 1.25em; font-weight: 700; margin: .5rem 0 .25rem; }
+    .preview-message .d-h3 { font-size: 1.1em; font-weight: 700; margin: .5rem 0 .25rem; }
+    .preview-message .empty-preview { color: #555; font-style: italic; }
+
+    /* Info box */
+    .info-box {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #181818;
+      border: 1px solid #333;
+      border-radius: 10px;
+      font-size: .85rem;
+      color: #888;
+      line-height: 1.6;
+    }
+
+    .info-box strong {
+      color: #aaa;
+    }
+
+    .info-box code {
+      background: #222;
+      padding: .15rem .4rem;
+      border-radius: 4px;
+      font-size: .8rem;
+      color: #5865F2;
+      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+    }
+
+    .info-box ul {
+      margin-top: .5rem;
+      padding-left: 1.2rem;
+    }
+
+    .info-box li {
+      margin-top: .25rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: #444;
+      font-size: .8rem;
+    }
+
+    footer a {
+      color: #5865F2;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Tooltip */
+    [data-tooltip] {
+      position: relative;
+    }
+
+    [data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111;
+      color: #e0e0e0;
+      padding: .3rem .6rem;
+      border-radius: 4px;
+      font-size: .72rem;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 10;
+      border: 1px solid #333;
+    }
+
+    @media (max-width: 600px) {
+      .timestamp-input-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .ts-format-row {
+        flex-wrap: wrap;
+        gap: .4rem;
+      }
+
+      .ts-format-label {
+        min-width: unset;
+        width: 100%;
+      }
+
+      .toolbar {
+        gap: .3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Discord Message Editor</h1>
+  <p>Compose Discord messages with formatting, timestamps &amp; live preview</p>
+</header>
+
+<div class="container">
+
+  <!-- Preview Section -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Message Preview</span>
+    </div>
+    <div class="preview-message" id="preview">
+      <span class="empty-preview">Your message preview will appear here...</span>
+    </div>
+  </div>
+
+  <!-- Editor Section -->
+  <div class="panel" style="padding: 0; border: none; background: none;">
+    <div class="toolbar" id="toolbar">
+      <button class="btn-icon" data-action="bold" data-tooltip="Bold"><b>B</b></button>
+      <button class="btn-icon" data-action="italic" data-tooltip="Italic"><i>I</i></button>
+      <button class="btn-icon" data-action="underline" data-tooltip="Underline" style="text-decoration:underline;">U</button>
+      <button class="btn-icon" data-action="strikethrough" data-tooltip="Strikethrough" style="text-decoration:line-through;">S</button>
+      <div class="toolbar-divider"></div>
+      <button class="btn-icon" data-action="code" data-tooltip="Inline Code" style="font-family:monospace; font-size:.8rem;">{ }</button>
+      <button class="btn-icon" data-action="codeblock" data-tooltip="Code Block" style="font-family:monospace; font-size:.7rem;">```</button>
+      <div class="toolbar-divider"></div>
+      <button class="btn-icon" data-action="spoiler" data-tooltip="Spoiler" style="font-size:.75rem;">||</button>
+      <button class="btn-icon" data-action="quote" data-tooltip="Block Quote" style="font-size:1rem;">&gt;</button>
+      <div class="toolbar-divider"></div>
+      <button class="btn-icon" data-action="h1" data-tooltip="Heading 1" style="font-size:.7rem;">H1</button>
+      <button class="btn-icon" data-action="h2" data-tooltip="Heading 2" style="font-size:.7rem;">H2</button>
+      <button class="btn-icon" data-action="h3" data-tooltip="Heading 3" style="font-size:.7rem;">H3</button>
+      <div class="toolbar-divider"></div>
+      <button class="btn-icon" data-action="bullet" data-tooltip="Bullet List" style="font-size:.85rem;">&#8226;</button>
+      <button class="btn-icon" data-action="numbered" data-tooltip="Numbered List" style="font-size:.7rem;">1.</button>
+      <div class="toolbar-divider"></div>
+      <button class="btn-icon" id="copyBtn" data-tooltip="Copy Message" style="font-size:.75rem;">&#x2398;</button>
+    </div>
+    <textarea class="editor" id="editor" placeholder="Type your Discord message here..."></textarea>
+  </div>
+
+  <!-- Character counter -->
+  <div class="char-counter">
+    <div class="char-bar">
+      <div class="char-bar-fill" id="charBarFill" style="width: 0%;"></div>
+    </div>
+    <span class="char-counter-text" id="charCounter">0 / 2000</span>
+  </div>
+
+  <!-- Timestamp Tool -->
+  <div class="panel" style="margin-top: 1rem;">
+    <div class="panel-header">
+      <span class="panel-title">Timestamp Generator</span>
+      <button class="btn btn-small" id="tsNowBtn">Use Current Time</button>
+    </div>
+    <div class="timestamp-section">
+      <div class="timestamp-input-row">
+        <div class="input-group" style="flex:1; min-width: 180px;">
+          <label>Date &amp; Time</label>
+          <input type="datetime-local" id="tsInput" step="1">
+        </div>
+        <div class="input-group" style="min-width: 120px;">
+          <label>Unix Timestamp</label>
+          <input type="number" id="tsUnix" placeholder="e.g. 1771225987">
+        </div>
+      </div>
+      <div class="timestamp-formats" id="tsFormats">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-box">
+    <strong>Discord Markdown Reference</strong>
+    <ul>
+      <li><code>**text**</code> &mdash; <strong>Bold</strong></li>
+      <li><code>*text*</code> &mdash; <em>Italic</em></li>
+      <li><code>__text__</code> &mdash; <span style="text-decoration:underline">Underline</span></li>
+      <li><code>~~text~~</code> &mdash; <span style="text-decoration:line-through">Strikethrough</span></li>
+      <li><code>||text||</code> &mdash; Spoiler</li>
+      <li><code>`code`</code> &mdash; Inline Code</li>
+      <li><code>```code```</code> &mdash; Code Block</li>
+      <li><code>> text</code> &mdash; Block Quote</li>
+      <li><code># H1</code> / <code>## H2</code> / <code>### H3</code> &mdash; Headings</li>
+      <li><code>&lt;t:TIMESTAMP:FORMAT&gt;</code> &mdash; Dynamic Timestamps</li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="copied-toast" id="copiedToast">Copied to clipboard!</div>
+
+<footer>
+  Discord Message Editor &mdash; runs entirely in your browser &mdash;
+  <a href="https://github.com/bdedeurwaerder/discord-wysiwyg" target="_blank">GitHub</a>
+</footer>
+
+<script>
+(function () {
+  var editor = document.getElementById('editor');
+  var charCounter = document.getElementById('charCounter');
+  var charBarFill = document.getElementById('charBarFill');
+  var preview = document.getElementById('preview');
+  var copyBtn = document.getElementById('copyBtn');
+  var copiedToast = document.getElementById('copiedToast');
+  var toolbar = document.getElementById('toolbar');
+  var tsInput = document.getElementById('tsInput');
+  var tsUnix = document.getElementById('tsUnix');
+  var tsNowBtn = document.getElementById('tsNowBtn');
+  var tsFormats = document.getElementById('tsFormats');
+
+  var CHAR_LIMIT = 2000;
+
+  var TS_FORMATS = [
+    { key: '',  label: 'Default',         suffix: '',  example: function(d) { return formatDate(d, 'f'); } },
+    { key: 't', label: 'Short Time',      suffix: ':t', example: function(d) { return formatDate(d, 't'); } },
+    { key: 'T', label: 'Long Time',       suffix: ':T', example: function(d) { return formatDate(d, 'T'); } },
+    { key: 'd', label: 'Short Date',      suffix: ':d', example: function(d) { return formatDate(d, 'd'); } },
+    { key: 'D', label: 'Long Date',       suffix: ':D', example: function(d) { return formatDate(d, 'D'); } },
+    { key: 'f', label: 'Short Date/Time', suffix: ':f', example: function(d) { return formatDate(d, 'f'); } },
+    { key: 'F', label: 'Long Date/Time',  suffix: ':F', example: function(d) { return formatDate(d, 'F'); } },
+    { key: 'R', label: 'Relative',        suffix: ':R', example: function(d) { return formatDate(d, 'R'); } }
+  ];
+
+  function formatDate(date, fmt) {
+    if (!date) return '—';
+    switch (fmt) {
+      case 't': return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      case 'T': return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      case 'd': return date.toLocaleDateString([], { month: '2-digit', day: '2-digit', year: 'numeric' });
+      case 'D': return date.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
+      case 'f': return date.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' }) + ' ' +
+                       date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      case 'F': return date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) + ' ' +
+                       date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      case 'R': return relativeTime(date);
+      default: return date.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' }) + ' ' +
+                      date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+  }
+
+  function relativeTime(date) {
+    var now = new Date();
+    var diff = Math.floor((date.getTime() - now.getTime()) / 1000);
+    var abs = Math.abs(diff);
+    var suffix = diff < 0 ? ' ago' : ' from now';
+
+    if (abs < 60) return abs + ' seconds' + suffix;
+    if (abs < 3600) return Math.floor(abs / 60) + ' minutes' + suffix;
+    if (abs < 86400) return Math.floor(abs / 3600) + ' hours' + suffix;
+    if (abs < 2592000) return Math.floor(abs / 86400) + ' days' + suffix;
+    if (abs < 31536000) return Math.floor(abs / 2592000) + ' months' + suffix;
+    return Math.floor(abs / 31536000) + ' years' + suffix;
+  }
+
+  // --- Character counter ---
+  function updateCharCounter() {
+    var len = editor.value.length;
+    charCounter.textContent = len + ' / ' + CHAR_LIMIT;
+
+    var pct = Math.min((len / CHAR_LIMIT) * 100, 100);
+    charBarFill.style.width = pct + '%';
+
+    charCounter.className = 'char-counter-text';
+    charBarFill.className = 'char-bar-fill';
+
+    if (len > CHAR_LIMIT) {
+      charCounter.classList.add('danger');
+      charBarFill.classList.add('danger');
+    } else if (len > CHAR_LIMIT * 0.9) {
+      charCounter.classList.add('warning');
+      charBarFill.classList.add('warning');
+    }
+  }
+
+  // --- Preview rendering ---
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function renderPreview() {
+    var text = editor.value;
+    if (!text.trim()) {
+      preview.innerHTML = '<span class="empty-preview">Your message preview will appear here...</span>';
+      return;
+    }
+
+    var html = escapeHtml(text);
+
+    // Code blocks (``` ... ```) — must come before inline formatting
+    html = html.replace(/```(?:\w*\n)?([\s\S]*?)```/g, function(m, code) {
+      return '<span class="d-codeblock">' + code + '</span>';
+    });
+
+    // Inline code (` ... `)
+    html = html.replace(/`([^`\n]+)`/g, '<span class="d-code">$1</span>');
+
+    // Headings (must be at line start)
+    html = html.replace(/(^|\n)### (.+)/g, '$1<span class="d-h3">$2</span>');
+    html = html.replace(/(^|\n)## (.+)/g, '$1<span class="d-h2">$2</span>');
+    html = html.replace(/(^|\n)# (.+)/g, '$1<span class="d-h1">$2</span>');
+
+    // Block quotes
+    html = html.replace(/(^|\n)&gt; (.+)/g, '$1<span class="d-quote">$2</span>');
+
+    // Bold + Italic (***text***)
+    html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<span class="d-bold d-italic">$1</span>');
+
+    // Bold (**text**)
+    html = html.replace(/\*\*(.+?)\*\*/g, '<span class="d-bold">$1</span>');
+
+    // Italic (*text*)
+    html = html.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<span class="d-italic">$1</span>');
+
+    // Underline (__text__)
+    html = html.replace(/__(.+?)__/g, '<span class="d-underline">$1</span>');
+
+    // Strikethrough (~~text~~)
+    html = html.replace(/~~(.+?)~~/g, '<span class="d-strike">$1</span>');
+
+    // Spoiler (||text||)
+    html = html.replace(/\|\|(.+?)\|\|/g, '<span class="d-spoiler" onclick="this.classList.toggle(\'revealed\')">$1</span>');
+
+    // Timestamps (<t:123456:f> etc)
+    html = html.replace(/&lt;t:(\d+)(?::([tTdDfFR]))?&gt;/g, function(m, ts, fmt) {
+      var date = new Date(parseInt(ts) * 1000);
+      var display = formatDate(date, fmt || 'f');
+      return '<span class="d-timestamp">' + escapeHtml(display) + '</span>';
+    });
+
+    // Newlines
+    html = html.replace(/\n/g, '<br>');
+
+    preview.innerHTML = html;
+  }
+
+  function updateAll() {
+    updateCharCounter();
+    renderPreview();
+  }
+
+  editor.addEventListener('input', updateAll);
+
+  // --- Toolbar actions ---
+  function wrapSelection(before, after) {
+    var start = editor.selectionStart;
+    var end = editor.selectionEnd;
+    var text = editor.value;
+    var selected = text.substring(start, end);
+
+    if (!selected) {
+      // Insert placeholder
+      var placeholder = 'text';
+      editor.value = text.substring(0, start) + before + placeholder + after + text.substring(end);
+      editor.selectionStart = start + before.length;
+      editor.selectionEnd = start + before.length + placeholder.length;
+    } else {
+      editor.value = text.substring(0, start) + before + selected + after + text.substring(end);
+      editor.selectionStart = start + before.length;
+      editor.selectionEnd = start + before.length + selected.length;
+    }
+
+    editor.focus();
+    updateAll();
+  }
+
+  function prependLines(prefix) {
+    var start = editor.selectionStart;
+    var end = editor.selectionEnd;
+    var text = editor.value;
+
+    // Find line boundaries
+    var lineStart = text.lastIndexOf('\n', start - 1) + 1;
+    var lineEnd = text.indexOf('\n', end);
+    if (lineEnd === -1) lineEnd = text.length;
+
+    var lines = text.substring(lineStart, lineEnd).split('\n');
+    var result = lines.map(function(line, i) {
+      if (typeof prefix === 'function') return prefix(i) + line;
+      return prefix + line;
+    }).join('\n');
+
+    editor.value = text.substring(0, lineStart) + result + text.substring(lineEnd);
+    editor.selectionStart = lineStart;
+    editor.selectionEnd = lineStart + result.length;
+    editor.focus();
+    updateAll();
+  }
+
+  toolbar.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+
+    var action = btn.dataset.action;
+    switch (action) {
+      case 'bold':          wrapSelection('**', '**'); break;
+      case 'italic':        wrapSelection('*', '*'); break;
+      case 'underline':     wrapSelection('__', '__'); break;
+      case 'strikethrough': wrapSelection('~~', '~~'); break;
+      case 'code':          wrapSelection('`', '`'); break;
+      case 'codeblock':     wrapSelection('```\n', '\n```'); break;
+      case 'spoiler':       wrapSelection('||', '||'); break;
+      case 'quote':         prependLines('> '); break;
+      case 'h1':            prependLines('# '); break;
+      case 'h2':            prependLines('## '); break;
+      case 'h3':            prependLines('### '); break;
+      case 'bullet':        prependLines('- '); break;
+      case 'numbered':      prependLines(function(i) { return (i + 1) + '. '; }); break;
+    }
+  });
+
+  // --- Keyboard shortcuts ---
+  editor.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
+      switch (e.key.toLowerCase()) {
+        case 'b': e.preventDefault(); wrapSelection('**', '**'); break;
+        case 'i': e.preventDefault(); wrapSelection('*', '*'); break;
+        case 'u': e.preventDefault(); wrapSelection('__', '__'); break;
+      }
+    }
+  });
+
+  // --- Timestamp tool ---
+  function setTimestampNow() {
+    var now = new Date();
+    // Format for datetime-local input
+    var y = now.getFullYear();
+    var m = String(now.getMonth() + 1).padStart(2, '0');
+    var d = String(now.getDate()).padStart(2, '0');
+    var h = String(now.getHours()).padStart(2, '0');
+    var min = String(now.getMinutes()).padStart(2, '0');
+    var s = String(now.getSeconds()).padStart(2, '0');
+    tsInput.value = y + '-' + m + '-' + d + 'T' + h + ':' + min + ':' + s;
+    tsUnix.value = Math.floor(now.getTime() / 1000);
+    renderTimestampFormats();
+  }
+
+  function getTimestampDate() {
+    if (tsUnix.value) {
+      return new Date(parseInt(tsUnix.value) * 1000);
+    }
+    if (tsInput.value) {
+      return new Date(tsInput.value);
+    }
+    return null;
+  }
+
+  function getUnixTimestamp() {
+    if (tsUnix.value) return parseInt(tsUnix.value);
+    if (tsInput.value) return Math.floor(new Date(tsInput.value).getTime() / 1000);
+    return null;
+  }
+
+  function renderTimestampFormats() {
+    var date = getTimestampDate();
+    var unix = getUnixTimestamp();
+    tsFormats.innerHTML = '';
+
+    if (!date || isNaN(date.getTime()) || !unix) {
+      tsFormats.innerHTML = '<div style="color:#555; font-size:.85rem; padding:.5rem;">Enter a date/time or Unix timestamp above to see format options.</div>';
+      return;
+    }
+
+    TS_FORMATS.forEach(function(fmt) {
+      var code = '<t:' + unix + fmt.suffix + '>';
+      var previewText = fmt.example(date);
+
+      var row = document.createElement('div');
+      row.className = 'ts-format-row';
+      row.innerHTML =
+        '<span class="ts-format-label">' + escapeHtml(fmt.label) + '</span>' +
+        '<span class="ts-format-preview">' + escapeHtml(previewText) + '</span>' +
+        '<span class="ts-format-code" title="Click to copy">' + escapeHtml(code) + '</span>' +
+        '<button class="btn btn-small btn-primary ts-insert-btn">Insert</button>';
+
+      // Copy code on click
+      var codeEl = row.querySelector('.ts-format-code');
+      codeEl.addEventListener('click', function() {
+        navigator.clipboard.writeText(code).then(function() {
+          showToast('Copied to clipboard!');
+        });
+      });
+
+      // Insert into editor
+      var insertBtn = row.querySelector('.ts-insert-btn');
+      insertBtn.addEventListener('click', function() {
+        insertAtCursor(code);
+      });
+
+      tsFormats.appendChild(row);
+    });
+  }
+
+  function insertAtCursor(text) {
+    var start = editor.selectionStart;
+    var end = editor.selectionEnd;
+    var val = editor.value;
+    editor.value = val.substring(0, start) + text + val.substring(end);
+    editor.selectionStart = editor.selectionEnd = start + text.length;
+    editor.focus();
+    updateAll();
+  }
+
+  tsInput.addEventListener('input', function() {
+    if (tsInput.value) {
+      var date = new Date(tsInput.value);
+      if (!isNaN(date.getTime())) {
+        tsUnix.value = Math.floor(date.getTime() / 1000);
+      }
+    }
+    renderTimestampFormats();
+  });
+
+  tsUnix.addEventListener('input', function() {
+    if (tsUnix.value) {
+      var date = new Date(parseInt(tsUnix.value) * 1000);
+      if (!isNaN(date.getTime())) {
+        var y = date.getFullYear();
+        var m = String(date.getMonth() + 1).padStart(2, '0');
+        var d = String(date.getDate()).padStart(2, '0');
+        var h = String(date.getHours()).padStart(2, '0');
+        var min = String(date.getMinutes()).padStart(2, '0');
+        var s = String(date.getSeconds()).padStart(2, '0');
+        tsInput.value = y + '-' + m + '-' + d + 'T' + h + ':' + min + ':' + s;
+      }
+    }
+    renderTimestampFormats();
+  });
+
+  tsNowBtn.addEventListener('click', setTimestampNow);
+
+  // --- Copy button ---
+  function showToast(msg) {
+    copiedToast.textContent = msg;
+    copiedToast.classList.add('show');
+    setTimeout(function() {
+      copiedToast.classList.remove('show');
+    }, 1500);
+  }
+
+  copyBtn.addEventListener('click', function() {
+    navigator.clipboard.writeText(editor.value).then(function() {
+      showToast('Copied to clipboard!');
+    }).catch(function() {
+      // Fallback
+      editor.select();
+      document.execCommand('copy');
+      showToast('Copied to clipboard!');
+    });
+  });
+
+  // --- Initialize ---
+  setTimestampNow();
+  updateAll();
+})();
+</script>
+
+</body>
+</html>
